@@ -1,4 +1,6 @@
 const {upload} = require('../util/upload')
+const {user} = require('../config')
+const {createToken} = require('../util')
 
 module.exports = {
   index: async (ctx) => {
@@ -38,22 +40,34 @@ module.exports = {
   },
 
   upload: async (ctx,next)=>{
-    let err = await upload.single('file_input')(ctx, next)
+    let err = await upload.single('image_box')(ctx, next)
                 .then(res=>res)
                 .catch(err=>err)
     if(err){
-        ctx.body = {
-            code: 0,
-            msg : err.message
-        }
+        throw {code: 0, message: err.message}
     }else{
         img_path = ctx.file.path
-        console.log(ctx.request.body.filename);
+        console.log(ctx.request.body.roomTopics);
         console.log(img_path);
         ctx.body = {
-            code:200,
-            data:ctx.file
-        }
+          file: ctx.file
+      }
     }
+  },
+  // ------------------上面是测试代码---------------------------------------------- // 
+  apptoken: async (ctx) => {
+    let params = ctx.request.body
+    if(user.username === params.username && user.password === params.password){
+      ctx.body = { token: createToken({ id: user.id }) }
+    } else { 
+      throw { code: 0, messaage: '获取token失败' }
+    }
+  },
+  checktoken: async (ctx) => {
+    try {
+      ctx.body = {}
+    } catch (err) { throw err }
   }
+
+
 }

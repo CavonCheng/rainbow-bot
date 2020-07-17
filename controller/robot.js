@@ -1,79 +1,77 @@
 const {upload} = require('../util/upload')
 const {FileBox} = require('wechaty')
+const logger = require('../util/logger')
 
-module.exports = {
-    sendPic: async (ctx,next)=>{
-        let err = await upload.single('file_input')(ctx, next)
+// 上传文件
+const uploadFile = async (ctx, next, formName) => {
+    let err = await upload.single(formName)(ctx, next)
                     .then(res=>res)
                     .catch(err=>err)
-        if(err){
-            ctx.body = {
-                code: 0,
-                msg : err.message
-            }
-            await boss.say(`发送图片失败：${err.message}`)
-        }else{
-            img_path = ctx.file.path
-            const fileBox = FileBox.fromFile(img_path)
-            // 发送到微信
-            // const contact = await bot.Contact.find({ name: '橙子哥' })
-            // await contact.say(fileBox) 
-
-            const room = await bot.Room.find({topic: '测试'})
-            await room.say(fileBox)
-            let members = await room.memberAll('大boss')
-            await room.say('牛逼，你成功了！', ...members)
-            
-            await boss.say(fileBox)
-            ctx.body = {
-                code:200,
-                data:ctx.file
+    if(err){
+        await boss.say(`发送图片失败：${err.message}`)
+        throw {code: 0, message: err.message}
+    }else{
+        img_path = ctx.file.path
+        return img_path
+    }
+}
+// 多点发送
+const multiSend = async (roomTopics, contactNames, contentObjs) => {
+    try{
+        // 发群消息
+        if(roomTopics){
+            for (let topic of roomTopics){
+                let room = await bot.Room.find({topic: topic})
+                if(!room){
+                    console.log(`未发现群：${topic}`);
+                    logger.error({errmsg: `未发现消息接收群：${topic}`})
+                    continue
+                }
+                for (let content of contentObjs){
+                    await room.say(content)
+                }
             }
         }
-    },
-    friendSay: async (ctx) => {
-        try {
-            const contact = await bot.Contact.find({ id: ctx.request.body.id })
-            await contact.say(ctx.request.body.content)
-            ctx.body = {}
-        } catch (err) { throw err }
-    },
-    roomSay: async (ctx) => {
-        try {
-            const room = await bot.Room.find({ id: ctx.request.body.id })
-            await room.say(ctx.request.body.content)
-            ctx.body = {}
-        } catch (err) { throw err }
-    },
-    getRoom: async (ctx) => {
-        try {
-            const room = await bot.Room.find({ id: ctx.params.id })
-            const topic = await room.topic()
-            const announce = await room.announce()
-            ctx.body = { topic, announce }
-        } catch (err) { throw err }
-    },
-    updateRoom: async (ctx) => {
-        try {
-            const room = await bot.Room.find({ id: ctx.params.id })
-            if (ctx.request.body.topic) {
-                await room.topic(ctx.request.body.topic)
-                await Group.updateOne({ id: ctx.params.id }, { topic: ctx.request.body.topic })
+        // 发个人消息
+        if(contactNames){
+            for (let name of contactNames){
+                let contact = await bot.Contact.find(name)
+                if(!contact){
+                    console.log(`未发联系人：${name}`);
+                    logger.error({errmsg: `未发现消息接收联系人：${name}`})
+                    continue
+                }
+                for (let content of contentObjs){
+                    await contact.say(content)
+                }
             }
-            if (ctx.request.body.announce) {
-                await room.announce(ctx.request.body.announce)
-            }
-            ctx.body = {}
-        } catch (err) { throw { message: '没有权限，不是群主或者管理员' } }
-    },
-    roomQuit: async (ctx) => {
+        }
+    } catch (err) { throw err }
+}
+
+module.exports = {
+    // todo: 多文件上传、发送，删除文件
+    sendImage: async (ctx, next) => {
         try {
-            const room = await bot.Room.find({ id: ctx.request.body.id })
-            await room.quit()
+            const img_path = await uploadFile(ctx, next, 'image_box')
+            const fileBox = FileBox.fromFile(img_path)
+            // 坑 注意顺序，上传文件后才能获取到body数据
+            const roomTopics = ctx.request.body.roomTopics
+            const contactNames = ctx.request.body.contactNames
+    
+            await multiSend(roomTopics, contactNames, [fileBox])
             ctx.body = {}
         } catch (err) { throw err }
     },
-
-
+    sendText: async (ctx) => {
+        try {
+            const roomTopics = ctx.request.body.roomTopics
+            const contactNames = ctx.request.body.contactNames
+            const contents = ctx.request.body.contents
+            console.log(`roomTopics:${roomTopics}, contactNames:${contactNames}`);
+            await multiSend(roomTopics, contactNames, contents)
+            ctx.body = {}
+        } catch (err) { throw err }
+    },
 
 }

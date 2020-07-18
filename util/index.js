@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken')
 const { secret } = require('../config')
+const fs = require('fs')
 
 
 const createToken = (payload = {}, expiresIn) => {
@@ -9,4 +10,16 @@ const verifyToken = (token) => {
     return jwt.verify(token.split(' ')[1], secret);
 }
 
-module.exports = {createToken, verifyToken}
+// 删除文件
+const delFiles = async (paths) => {
+    try{
+        if(!(paths && paths.length > 0) ) return
+        for (p of paths){
+            if(fs.existsSync(p)){
+                fs.unlinkSync(p)
+            }
+        }
+    } catch(err) { throw err }
+}
+
+module.exports = {createToken, verifyToken, delFiles}

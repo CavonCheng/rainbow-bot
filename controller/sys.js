@@ -2,6 +2,20 @@ const {upload} = require('../util/upload')
 const {user} = require('../config')
 const {createToken} = require('../util')
 
+
+// 上传文件
+const uploadFiles = async (ctx, next, formName) => {
+  let err = await upload.array(formName)(ctx, next)
+                  .then(res=>res)
+                  .catch(err=>err)
+  if(err){
+      await boss.say(`上传文件失败：${err.message}`)
+      throw {code: 0, message: err.message}
+  }else{
+      console.log(ctx.files);
+  }
+}
+
 module.exports = {
   index: async (ctx) => {
     try {
@@ -40,19 +54,7 @@ module.exports = {
   },
 
   upload: async (ctx,next)=>{
-    let err = await upload.single('image_box')(ctx, next)
-                .then(res=>res)
-                .catch(err=>err)
-    if(err){
-        throw {code: 0, message: err.message}
-    }else{
-        img_path = ctx.file.path
-        console.log(ctx.request.body.roomTopics);
-        console.log(img_path);
-        ctx.body = {
-          file: ctx.file
-      }
-    }
+    await uploadFiles(ctx, next, 'image_box')
   },
   // ------------------上面是测试代码---------------------------------------------- // 
   apptoken: async (ctx) => {

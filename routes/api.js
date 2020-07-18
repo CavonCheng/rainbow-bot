@@ -5,8 +5,9 @@ const botLogin = require('../middleware/botLogin')
 router.prefix('/api')
 
 
-router.post('/robot/sendimage',  botLogin(), robotCtrl.sendImage)
+router.post('/robot/sendfile',  botLogin(), robotCtrl.sendFile)
 router.post('/robot/sendtext',  botLogin(), robotCtrl.sendText)
+router.post('/robot/sendmix',  botLogin(), robotCtrl.sendMix)
 
 router.post('/apptoken', sysCtrl.apptoken)
 router.get('/checktoken', sysCtrl.checktoken)

@@ -1,2 +1,5 @@
 /node_modules/*
 /logs/*
+/public/uploads/*
+/config/openai.js
+/config/puppet.js
